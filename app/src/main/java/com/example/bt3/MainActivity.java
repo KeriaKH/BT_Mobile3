@@ -20,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -46,13 +47,24 @@ class Phone {
     }
 }
 
+class callLog {
+    public String number;
+    public String date;
+    public String type;
+    public callLog(String number,String date,String type)
+    {
+        this.number=number;
+        this.date=date;
+        this.type=type;
+    }
+}
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private List<Phone> phones;
     private static final int CONTACT_LOADER = 1;
     private boolean isASC = true;
     private ListView listView;
-    private Button addphone;
+    private Button addphone,viewCallLog;
 
     private PhoneListAdapter phoneListAdapter;
     @Override
@@ -61,6 +73,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         LoaderManager.getInstance(this).initLoader(CONTACT_LOADER, null, this);
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALL_LOG)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_CALL_LOG}, 1);
+        }
         phones=new ArrayList<>();
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, 1);
         listView = findViewById(R.id.listview);
@@ -70,6 +87,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         addphone.setOnClickListener(v -> {
             Intent intent = new Intent(this, AddPhone.class);
             startActivityForResult(intent,1);
+        });
+        viewCallLog=findViewById(R.id.button);
+        viewCallLog.setOnClickListener(v -> {
+            Intent intent=new Intent(this, CallLogActivity.class);
+            startActivity(intent);
         });
         listView.setOnItemClickListener((parent, view, position, id) -> {
             Intent intent = new Intent(this, EditPhone.class);
@@ -135,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 return true;
             }
 
-            return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelected(item);
         }
 
     @Override
@@ -239,10 +261,60 @@ class PhoneListAdapter extends ArrayAdapter<Phone> {
             if (idTextView != null) {
                 idTextView.setText(String.valueOf(position));
             }
-
-
         }
         return v;
     }
+}
 
+class CallLogAdapter extends ArrayAdapter<callLog> {
+    int resource;
+    private List<callLog> callLogs;
+    public CallLogAdapter(Context context, int resource, List<callLog> callLogs) {
+        super(context, resource, callLogs);
+        this.callLogs = callLogs;
+        this.resource = resource;
+
+    }
+    @NonNull
+    @Override
+    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        View v = convertView;
+        if (v == null) {
+            LayoutInflater vi;
+            vi = LayoutInflater.from(this.getContext());
+            v = vi.inflate(this.resource, null);
+        }
+
+        callLog calllog = getItem(position);
+        if (calllog != null) {
+            TextView numberTextView = v.findViewById(R.id.textView);
+            TextView dateTextView = v.findViewById(R.id.textView2);
+            ImageView imageView=v.findViewById(R.id.image);
+            if (numberTextView != null) {
+                numberTextView.setText(calllog.number);
+            }
+            if (dateTextView != null) {
+                dateTextView.setText(calllog.date);
+            }
+            if (imageView != null) {
+                switch (calllog.type){
+                    case "Outgoing":
+                        imageView.setImageResource(R.drawable.outgoingcall);
+                        break;
+                    case "Incoming":
+                        imageView.setImageResource(R.drawable.incomingcall);
+                        break;
+                    case "Missed":
+                        imageView.setImageResource(R.drawable.missedcall);
+                        break;
+                    case "Rejected":
+                        imageView.setImageResource(R.drawable.rejected);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return v;
+    }
 }
